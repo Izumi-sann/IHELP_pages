@@ -29,7 +29,7 @@ def index():
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM marker")
         dati= cursor.fetchall()
-    return render_template('prova.html', dati_risposta = dati)
+    return render_template('index.html', dati_risposta = dati)
 
 @app.route('/invia', methods=['POST'])
 def controllo():
@@ -50,7 +50,7 @@ def controllo():
             ''', (latitudine, longitudine, Td, colore, tipo))
             conn.commit()
         
-        return redirect(url_for('prova'))
+        return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
