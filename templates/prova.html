@@ -1,0 +1,1766 @@
+<!--Script lingua modificato, link file modificati, aggiunto script DB-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<!-------------------------------------------HEAD DEL SITO---------------------------------------------------->
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leaflet Map with Zoom-Based Pin Visibility</title>
+
+  <!-----------------------------------------STILI DELLA PAGINA----------------------------------------------->
+
+    <!--------------------LEAFLET CSS----------------------------->
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+    <!------------------------------------------------------------>
+
+
+    <!--------------------PROVA_2 CSS----------------------------->
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='PROVA2.css') }}">
+
+    <!------------------------------------------------------------>
+
+  <!---------------------------------------------------------------------------------------------------------->
+
+  </head>
+
+<!----------------------------------------------FINE HEAD----------------------------------------------------->
+
+
+
+
+<!--------------------------------------------BODY DEL SITO--------------------------------------------------->
+
+<body>
+
+<!--------------------------------------------MENU' GRAFICO--------------------------------------------------->
+
+  <div id="MAPS">
+      <div id="BARRA_SUP">
+          <div class="BARRA_RICERCA">
+              <div class="MENU">  
+                <input type="checkbox" id="menu-toggle" class="menu-checkbox">
+                  <label for="menu-toggle" class="menu-hamburger">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                  </label>
+                  <div class="menu-items">
+                      <button class="close-menu">&times;</button>
+                      <a href="#Account" data-key="account">Account</a>
+
+  <!-------------------------------------POPUP SERVIZI PREFERITI--------------------------------------------->
+
+  <button class="Lingua" onclick="openPopupPref()" data-key="preferiti">Preferiti</button>
+      <div class="overlay-disp-pref" id="colorPopup-pref">
+        <div class="popup-disp-pref">
+            <h2 style="color: black;" id="popupTitle-pref" data-key="srv">Scegli servizio</h2>
+
+            <!-- Barra delle tab sopra il popup -->
+            <div class="popup-header-disp-pref">
+                <button id="btnO" onclick="setActiveButton('O')">O</button>
+                <button id="btnX" onclick="setActiveButton('X')">X</button>
+                <button id="btnT" onclick="setActiveButton('T')">T</button>
+            </div>
+
+            <!-- Griglia dei servizi -->
+            <div class="services-grid-disp-pref">
+                <div class="service-item-disp-pref" id="service-item-disp-pref-red" onclick="selectColor('red')">
+                    <img src="RED_ICON.png" alt="Rosso" >
+                    <h2 style="color: black; font-size: 13px; font-weight: lighter;" data-key="parcheggio_occupato"></h2>
+                </div>
+                <div class="service-item-disp-pref" id="service-item-disp-pref-green" onclick="selectColor('green')">
+                    <img src="GREEN_ICON.png" alt="Verde">
+                    <h2 style="color: black; font-size: 13px; font-weight: lighter;" data-key="ascensore"></h2>
+                </div>
+                <div class="service-item-disp-pref" id="service-item-disp-pref-blue" onclick="selectColor('blue')">
+                    <img src="BLUE_ICON.png" alt="Blu">
+                    <h2 style="color: black; font-size: 13px; font-weight: lighter;" data-key="parcheggio_libero"></h2>
+                </div>
+                <div class="service-item-disp-pref" id="service-item-disp-pref-pink" onclick="selectColor('pink')">
+                    <img src="PINK_ICON.png" alt="Rosa">
+                    <h2 style="color: black; font-size: 13px; font-weight: lighter;" data-key="hotel"></h2>
+                </div>
+                <div class="service-item-disp-pref" id="service-item-disp-pref-orange" onclick="selectColor('orange')">
+                    <img src="ORANGE_ICON.png" alt="Arancione">
+                    <h2 style="color: black; font-size: 13px; font-weight: lighter;" data-key="servizi_igenici"></h2>
+                </div>
+            </div>
+
+            <!-- Pulsante Chiudi in basso a destra -->
+            <div class="popup-footer-disp-pref">
+                <button onclick="closePopupPref()">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- <div id="map"></div> -->
+
+    <!-- <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script> -->
+    
+    <script>
+
+        function createIcon(color) {
+            return L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="width: 20px; height: 20px; background: ${color}; border-radius: 50%;"></div>`
+            });
+        }
+
+        function openPopupPref() {
+            document.getElementById('colorPopup-pref').style.display = 'flex';
+            setActiveButton('O');
+        }
+
+        function closePopupPref() {
+            document.getElementById('colorPopup-pref').style.display = 'none';
+        }
+
+        function setActiveButton(button) {
+            previousButton = activeButton;
+            activeButton = button;
+            let title = document.getElementById('popupTitle-pref');
+
+            // Aggiungi la classe "active" al pulsante attivo e rimuovila dagli altri
+            document.querySelectorAll('.popup-header-disp-pref button').forEach((btn) => {
+                if (btn.textContent === button) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            
+            //se non ci sono colori già selezionnati ritorno
+            color = selectedColors[button];
+            previousColor = selectedColors[previousButton];
+            console.log(color);
+            console.log(previousButton);
+            var to_remove_dimm = document.getElementById('service-item-disp-pref-' + previousColor);
+            var to_add_dimm = document.getElementById('service-item-disp-pref-' + color);
+
+            try{
+            if(previousColor == null){
+                to_add_dimm.classList.add('dimmed');
+                return;
+            }
+                to_remove_dimm.classList.remove('dimmed');
+                to_add_dimm.classList.add('dimmed');
+            }catch{}
+
+
+        }
+
+    function selectColor(color) {
+        let button = activeButton;
+        let previousColor = selectedColors[button];
+        if (previousColor && previousColor !== color) {
+            markers_pref[previousColor].addTo(map);
+            shownMarkers_pref[button] = null;
+        }
+        for (let key in selectedColors) {
+            if (selectedColors[key] === color) {
+                markers_pref[color].addTo(map);
+                selectedColors[key] = null;
+                document.getElementById('btn' + key).style.background = null;
+            }
+    }
+    selectedColors[button] = color;
+    updateButtonsColors();
+}
+
+        function updateButtonsColors() {
+            let allButtons = ['O', 'X', 'T'];
+            let usedColors = Object.values(selectedColors).filter(c => c !== null);
+            allButtons.forEach(button => {
+                let buttonElement = document.getElementById('btn' + button + 'Out');
+                if (selectedColors[button]) {
+                    buttonElement.style.backgroundColor = selectedColors[button];
+                } else {
+                    buttonElement.style.backgroundColor = '#007bff'; // Colore predefinito
+                }
+            });
+        }
+
+        
+    </script>
+                      
+
+  <!-------------------------------------POPUP SERVIZI DISPONIBILI------------------------------------------->
+
+  <script>
+    function openPopupDisp() {
+        document.getElementById('servicesPopupDisp').style.display = 'flex';
+    }
+
+    function closePopupDisp() {
+        document.getElementById('servicesPopupDisp').style.display = 'none';
+    }
+
+    function hideMarkerByImage(imageSrc) {
+        for (let key in markers_pref) {
+            if (key.includes(imageSrc)) {
+                map.removeLayer(markers_pref[key]);
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll(".service-item-disp img").forEach(img => {
+            img.addEventListener("click", function() {
+                hideMarkerByImage(this.src);
+            });
+        });
+    });
+</script>
+
+<button class="Lingua" onclick="openPopupDisp()" data-key="servizi">Servizi</button>
+<div class="overlay-disp" id="servicesPopupDisp">
+    <div class="popup-disp">
+        <h2 style="color: black;" data-key="servizidisponibili">Servizi Disponibili</h2>
+        <div class="services-grid-disp">
+            <div class="service-item-disp">
+                <img src="{{ url_for('static', filename='img/' + 'RED_ICON.png') }}" alt="Emergenze">
+                <p style="color: black; font-size: 13px;" data-key="parcheggio_occupato">Emergenze</p>
+            </div>
+            <div class="service-item-disp">
+                <img src="{{ url_for('static', filename='img/' + 'GREEN_ICON.png') }}" alt="Ascensore">
+                <p style="color: black; font-size: 13px;" data-key="ascensore">Ascensore</p>
+            </div>
+            <div class="service-item-disp">
+                <img src="{{ url_for('static', filename='img/' + 'BLUE_ICON.png') }}" alt="Parcheggio">
+                <p style="color: black; font-size: 13px;" data-key="parcheggio_libero">Parcheggio</p>
+            </div>
+        </div>
+        <div class="popup-footer-disp">
+            <button onclick="closePopupDisp()" data-key="chiudi">Chiudi</button>
+        </div>
+    </div>
+</div>
+
+  <!------------------------------------------------------------------------------------------------------------->
+
+  <!--------------------------------------------POPUP LINGUE----------------------------------------------------->
+
+                      <button class="Lingua" onclick="openPopup()" data-key="seleziona_lingua">Seleziona Lingua</button>
+                      <div class="overlay" id="languagePopup">
+                          <div class="popup">
+                              <div class="popup-header" data-key="seleziona_lingua">Seleziona la tua lingua</div>
+                              <div class="popup-content">
+                                  <ul>
+                                      <li onclick="changeLanguage('it')">Italiano</li>
+                                      <li onclick="changeLanguage('en')">English</li>
+                                      <li onclick="changeLanguage('fr')">Français</li>
+                                      <li onclick="changeLanguage('es')">Español</li>
+                                      <li onclick="changeLanguage('de')">Deutsch</li>
+                                      <li onclick="changeLanguage('pt')">Português</li>
+                                      <li onclick="changeLanguage('zh')">中文</li>
+                                      <li onclick="changeLanguage('ja')">日本語</li>
+                                      <li onclick="changeLanguage('ko')">한국어</li>
+                                      <li onclick="changeLanguage('ru')">Русский</li>
+                                      <li onclick="changeLanguage('ar')">عربي</li>
+                                  </ul>
+                              </div>
+                              <div class="popup-footer">
+                                  <button onclick="closePopup()" data-key="chiudi">Chiudi</button>
+                              </div>
+                          </div>
+                      </div>
+
+                      <a href="#Impostazioni" data-key='impostazioni'>Impostazioni</a>
+                      <a href="#Informazioni" data-key='informazioni'>Info su IHELP</a>
+                      <a href="#Partner" data-key='partner'>Partner</a>
+                      <a href="#Donazioni" data-key='donazioni'>Donazioni</a>
+                      <a href="#Assistenza" data-key='assistenza'>Assistenza</a>
+                      <a href="#Contattaci" data-key='contattaci'>Contattaci</a>
+                  </div>
+              </div>
+              <input placeholder="Cerca su IHELP" class="input" type="text" data-key="placeholder">
+              <svg viewBox="0 0 24 24" class="search__icon">
+                <g>
+                  <path d="M21.53 20.47l-3.66-3.66C19.195 15.24 20 13.214 20 11c0-4.97-4.03-9-9-9s-9 4.03-9 9 4.03 9 9 9c2.215 0 4.24-.804 5.808-2.13l3.66 3.66c.147.146.34.22.53.22s.385-.073.53-.22c.295-.293.295-.767.002-1.06zM3.5 11c0-4.135 3.365-7.5 7.5-7.5s7.5 3.365 7.5 7.5-3.365 7.5-7.5 7.5-7.5-3.365-7.5-7.5z">
+                  </path>
+                </g>
+              </svg>
+            </div>
+        </div>
+        <div class="button-container">
+            <input type="checkbox" id="menu-toggle" class="checkbox">
+            <label for="menu-toggle" class="button-menu"></label>
+        
+            <button id="btnOOut" class="color-button-pref ch-option-a" onclick="toggleMarker('O')">O</button>
+            <button id="btnXOut" class="color-button-pref ch-option-b" onclick="toggleMarker('X')">X</button>
+            <button id="btnTOut" class="color-button-pref ch-option-c" onclick="toggleMarker('T')">T</button>
+        </div>
+
+        <!--
+        <div style="padding: 39px; background-color: black; color: white;">
+            {% for i in dati_risposta %}
+            <h1>{{ i['latitudine'] }},{{ i['longitudine'] }},{{ i['data'] }},{{ i['colore'] }},{{ i['descrizione'] }}</h1><br>
+            {% endfor %}
+        </div>
+        -->
+
+  </div>
+
+  <!------------------------------------------------------------------------------------------------------------->
+
+  <script src="{{ url_for('static', filename='script/' + 'button.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='script/' + 'servizi.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='script/' + 'servizi_disponibili.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='script/' + 'translations.js') }}" defer></script>
+  
+  <script>
+
+    /*-------------------------MENU' SERVIZI-----------------------------*/
+
+        function openPopupDisp() {
+            document.getElementById("servicesPopupDisp").style.display = "flex";
+        }
+
+        function closePopupDisp() {
+            document.getElementById("servicesPopupDisp").style.display = "none";
+        }
+    
+    /*-------------------------------------------------------------------*/
+
+    /*-------------------------MENU' LINGUE------------------------------*/
+
+      function openPopup() {
+          document.getElementById('languagePopup').style.display = 'flex';
+      }
+      
+      function closePopup() {
+          document.getElementById('languagePopup').style.display = 'none';
+      }
+    
+    /*-------------------------------------------------------------------*/
+
+    /*-------------------------CAMBIA LINGUE------------------------------*/
+    function changeLanguage(lang) {
+      localStorage.setItem('selectedLanguage', lang);
+      applyTranslations(lang);
+      closePopup();
+    }
+
+    function applyTranslations(lang) {
+      fetch('static/script/translations.js')
+        .then(response => response.text())
+        .then(script => {
+          eval(script);
+          const elements = document.querySelectorAll('[data-key]');
+          elements.forEach(el => {
+            const key = el.getAttribute('data-key');
+            if (translations[lang] && translations[lang][key]) {
+              if (el.tagName === "INPUT") {
+                el.placeholder = translations[lang][key]; // Update placeholder for input fields
+              } else {
+                el.textContent = translations[lang][key];
+              }
+            }
+          });
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const savedLang = localStorage.getItem('selectedLanguage') || 'it';
+      applyTranslations(savedLang);
+    });
+  
+    /*-------------------------------------------------------------------*/
+
+  </script>
+
+<!----------------------------------------------------------------------------------------------------->
+
+
+
+
+<!----------------------------------------------------------------------------------------------------->
+
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+
+    /*--------------------------------------------INIZIO SCRIPT---------------------------------------------*/
+    const translations = {
+
+        /*-----------------------ITALIANO------------------------*/
+
+        it: {
+            placeholder:"Cerca su IHELP",
+            account:"Account",
+            preferiti:"Preferiti",
+            servizi:"Servizi",
+            seleziona_lingua:"Seleziona Lingua",
+            chiudi:"Chiudi",
+            impostazioni:"Impostazioni",
+            informazioni:"Info su IHELP",
+            partner:"Partner",
+            donazioni:"Donazioni",
+            assistenza:"Assistenza",
+            contattaci:"Contattaci",
+            /*--------------POPUP SERVIZI ITALIANO-----------------*/
+            servizidisponibili:"Servizi disponibili",
+            /*------------------POPUP ITALIANO---------------------*/
+                /*------------------MARKER---------------------*/
+                parcheggio_occupato:"PARCHEGGIO OCCUPATO",
+                parcheggio_libero:"PARCHEGGIO LIBERO",
+                ascensore:"ASCENSORE",
+                hotel:"TURISTICO RICETTIVA",
+                servizi_igenici:"SERVIZI IGENICI",
+                srv: "Scegli servizio",
+                /*--------------------------------------------*/
+            utente:"User",
+            tempo_trascorso:"Tempo trascorso",
+            secondi:"Secondi",
+            minuti:"Minuti",
+            ore:"Ore"
+        },
+
+        /*-------------------------------------------------------*/
+
+        /*-----------------------INGLESE------------------------*/
+
+        en: {
+            placeholder:"Search on IHELP",
+            account:"Account",
+            preferiti:"Favorites",
+            servizi:"Services",
+            seleziona_lingua:"Select Language",
+            chiudi:"Close",
+            impostazioni:"Settings",
+            informazioni:"About IHELP",
+            partner:"Partners",
+            donazioni:"Donations",
+            assistenza:"Support",
+            contattaci:"Contact Us",
+            /*--------------POPUP SERVIZI ITALIANO-----------------*/
+            servizidisponibili:"Services available",
+            /*-----------------POPUP INGLESE--------------------*/
+                /*------------------MARKER---------------------*/
+                parcheggio_occupato: "OCCUPIED PARKING",
+                parcheggio_libero: "FREE PARKING",
+                ascensore: "ELEVATOR",
+                hotel:"TOURIST RECEPTIVE",
+                servizi_igenici:"TOILETS",
+                srv: "Choose service",
+                /*--------------------------------------------*/
+            utente: "User",
+            tempo_trascorso: "Elapsed time",
+            secondi:"Seconds",
+            minuti:"Minutes",
+            ore:"Hours"
+        },
+            
+        /*-------------------------------------------------------*/
+
+        /*-----------------------FRANCESE------------------------*/
+
+        fr: {
+            placeholder:"Rechercher sur IHELP",
+            account:"Compte",
+            preferiti:"Favoris",
+            servizi:"Services",
+            seleziona_lingua:"Sélectionner langue",
+            chiudi:"Fermer",
+            impostazioni:"Paramètres",
+            informazioni:"À propos d'IHELP",
+            partner:"Partenaires",
+            donazioni:"Dons",
+            assistenza:"Assistance",
+            contattaci:"Contactez-nous",
+            /*--------------POPUP SERVIZI FRANCESE-----------------*/
+            servizidisponibili:"Services disponibles",
+            /*-----------------POPUP FRANCESE----------Utilisateur---------*/
+                /*------------------MARKER--------------------*/
+                parcheggio_occupato: "PARKING OCCUPÉ",
+                parcheggio_libero: "PARKING GRATUIT",
+                ascensore: "ASCENSEUR",
+                hotel:"HÉBERGEMENT TOURISTIQUE",
+                servizi_igenici:"SERVICES DE TOILETTES",
+                srv: "Choisissez service",
+                /*--------------------------------------------*/
+            utente: "User",
+            tempo_trascorso: "Temps écoulé",
+            secondi:"Secondes",
+            minuti:"Minutes",
+            ore:"Heures"
+            
+        },
+            
+        /*-------------------------------------------------------*/
+
+        /*-----------------------SPAGNOLO------------------------*/
+
+        es: {
+            placeholder:"Buscar en IHELP",
+            account:"Cuentas",
+            preferiti:"Favoritos",
+            servizi:"Servicios",
+            seleziona_lingua:"Seleccionar idioma",
+            chiudi:"Cerca",
+            impostazioni:"Ajustes",
+            informazioni:"Información sobre IHELP",
+            partner:"Pareja",
+            donazioni:"Donaciones",
+            assistenza:"Asistencia",
+            contattaci:"Contáctenos",
+            /*--------------POPUP SERVIZI SPAGNOLO-----------------*/
+            servizidisponibili:"Servicios disponibles",
+            /*-----------------POPUP SPAGNOLO-----------Usuario---------*/
+                /*------------------MARKER--------------------*/
+                parcheggio_occupato: "APARCAMIENTO OCUPADO",
+                parcheggio_libero: "APARCAMIENTO GRATUITO",
+                ascensore: "ASCENSOR",
+                hotel:"ALOJAMIENTO TURÍSTICO",
+                servizi_igenici:"SERVICIOS DE ASEO",
+                srv: "Elige servicio",
+                /*--------------------------------------------*/
+            utente: "User",
+            tempo_trascorso: "Tiempo transcurrido",
+            secondi:"Segundos",
+            minuti:"Minutos",
+            ore:"Horas"
+        },
+
+        /*-------------------------------------------------------*/
+
+        /*-----------------------TEDESCO------------------------*/
+
+        de: {
+            placeholder:"Suchen Sie auf IHELP",
+            account:"Konten",
+            preferiti:"Favoriten",
+            servizi:"Dienstleistungen",
+            seleziona_lingua:"Wählen Sprache",
+            chiudi:"Schließen",
+            impostazioni:"Einstellungen",
+            informazioni:"Infos zu IHELP",
+            partner:"Partner",
+            donazioni:"Spenden",
+            assistenza:"Hilfe",
+            contattaci:"Kontaktieren Sie uns",
+            /*--------------POPUP SERVIZI TEDESCO-----------------*/
+            servizidisponibili:"Dienstleistungen verfügbar",
+            /*-----------------POPUP TEDESCO------------Benutzer--------*/
+                /*------------------MARKER--------------------*/
+                parcheggio_occupato: "PARKPLATZ BESETZT",
+                parcheggio_libero: "KOSTENLOSER PARKPLATZ",
+                ascensore: "AUFZUG",
+                hotel:"TOURISTISCHE UNTERKUNFT",
+                servizi_igenici:"WC-DIENSTLEISTUNGEN",
+                srv: "Wählen Service",
+                /*--------------------------------------------*/
+            utente: "User",
+            tempo_trascorso: "Verstrichene Zeit",
+            secondi:"Sekunden",
+            minuti:"Minuten",
+            ore:"Stunden"
+        },
+
+        /*-------------------------------------------------------*/
+
+        /*-----------------------PORTOGHESE----------------------*/
+
+        pt: {
+            placeholder:"Pesquise no IHELP",
+            account:"Contas",
+            preferiti:"Favoritos",
+            servizi:"Serviços",
+            seleziona_lingua:"Selecione idioma",
+            chiudi:"Fechar",
+            impostazioni:"Configurações",
+            informazioni:"Informações sobre IHELP",
+            partner:"Parceiro",
+            donazioni:"Doações",
+            assistenza:"Assistência",
+            contattaci:"Contate-nos",
+            /*--------------POPUP SERVIZI PORTOGHESE-----------------*/
+            servizidisponibili:"Serviços disponíveis",
+            /*-----------------POPUP PORTOGHESE-----------Usuário---------*/
+                /*------------------MARKER--------------------*/
+                parcheggio_occupato: "ESTACIONAMENTO OCUPADO",
+                parcheggio_libero: "ESTACIONAMENTO GRATUITO",
+                ascensore: "ELEVADOR",
+                hotel:"ALOJAMENTO TURÍSTICO",
+                servizi_igenici:"SERVIÇOS DE BANHEIRO",
+                srv: "Escolha serviço",
+                /*--------------------------------------------*/
+            utente: "User",
+            tempo_trascorso: "Tempo decorrido",
+            secondi:"Segundos",
+            minuti:"Minutos",
+            ore:"Horas"
+        },
+
+        /*-------------------------------------------------------*/
+
+        /*------------------------CINESE-------------------------*/
+
+        zh: {
+            placeholder:"在 IHELP 上搜索",
+            account:"账户",
+            preferiti:"收藏夹",
+            servizi:"服务",
+            seleziona_lingua:"选择语言",
+            chiudi:"关闭",
+            impostazioni:"设置",
+            informazioni:"IHELP 信息",
+            partner:"伙伴",
+            donazioni:"捐款",
+            assistenza:"协助",
+            contattaci:"联系我们",
+            /*--------------POPUP SERVIZI CINESE-----------------*/
+            servizidisponibili:"提供的服务",
+            /*-----------------POPUP CINESE-----------用户---------*/
+                /*------------------MARKER--------------------*/
+                parcheggio_occupato: "停车繁忙",
+                parcheggio_libero: "免费停车",
+                ascensore: "电梯",
+                hotel:"旅游住宿",
+                servizi_igenici:"厕所服务",
+                srv: "选择服务",
+                /*--------------------------------------------*/
+            utente: "User",
+            tempo_trascorso: "经过时间",
+            secondi:"秒数",
+            minuti:"分钟",
+            ore:"时间"
+        },
+
+        /*-------------------------------------------------------*/
+
+        /*---------------------GIAPPONESE------------------------*/
+
+        ja: {
+            placeholder:"IHELPで検索",
+            account:"アカウント",
+            preferiti:"お気に入り",
+            servizi:"サービス",
+            seleziona_lingua:"言語の選択",
+            chiudi:"近い",
+            impostazioni:"設定",
+            informazioni:"IHELPのご案内",
+            partner:"パートナー",
+            donazioni:"寄付",
+            assistenza:"援助",
+            contattaci:"お問い合わせ",
+            /*--------------POPUP SERVIZI GIAPPONESE-----------------*/
+            servizidisponibili:"利用可能なサービス",
+            /*-----------------POPUP GIAPPONESE---------ユーザー---------*/
+                /*------------------MARKER--------------------*/
+                parcheggio_occupato: "駐車場が混雑しています",
+                parcheggio_libero: "無料駐車場",
+                ascensore: "エレベーター",
+                hotel:"観光客向け宿泊施設",
+                servizi_igenici:"トイレサービス",
+                srv: "サービスを選ぶ",
+                /*--------------------------------------------*/
+            utente: "User",
+            tempo_trascorso: "経過時間",
+            secondi:"秒",
+            minuti:"分",
+            ore:"時間"
+        },
+
+        /*-------------------------------------------------------*/
+
+        /*-----------------------COREANO------------------------*/
+
+        ko: {
+            placeholder:"IHELP에서 검색",
+            account:"계정",
+            preferiti:"즐겨찾기",
+            servizi:"서비스",
+            seleziona_lingua:"언어 선택",
+            chiudi:"닫다",
+            impostazioni:"설정",
+            informazioni:"IHELP에 대한 정보",
+            partner:"파트너",
+            donazioni:"기부",
+            assistenza:"보조",
+            contattaci:"문의하기",
+            /*--------------POPUP SERVIZI COREANO-----------------*/
+            servizidisponibili:"이용 가능한 서비스",
+            /*-----------------POPUP COREANO----------사용자------------*/
+                /*------------------MARKER--------------------*/
+                parcheggio_occupato: "주차 중",
+                parcheggio_libero: "무료 주차장",
+                ascensore: "엘리베이터",
+                hotel:"관광 숙박",
+                servizi_igenici:"화장실 서비스",
+                srv: "서비스 선택",
+                /*--------------------------------------------*/
+            utente: "User",
+            tempo_trascorso: "경과 시간",
+            secondi:"초",
+            minuti:"분",
+            ore:"시간"
+        },
+
+        /*-------------------------------------------------------*/
+
+        /*------------------------RUSSO--------------------------*/
+
+        ru: {
+            placeholder:"Поиск на IHELP",
+            account:"Счета",
+            preferiti:"Избранное",
+            servizi:"Услуги",
+            seleziona_lingua:"Выберите язык",
+            chiudi:"Закрывать",
+            impostazioni:"Настройки",
+            informazioni:"Информация о IHELP",
+            partner:"Партнер",
+            donazioni:"Пожертвования",
+            assistenza:"Помощь",
+            contattaci:"Связаться с нами",
+            /*--------------POPUP SERVIZI RUSSO-----------------*/
+            servizidisponibili:"Доступные услуги",
+            /*-----------------POPUP RUSSO----------Пользователь-------------*/
+                /*------------------MARKER--------------------*/
+                parcheggio_occupato: "ПАРКОВКА ЗАНЯТА",
+                parcheggio_libero: "БЕСПЛАТНАЯ ПАРКОВКА",
+                ascensore: "ЛИФТ",
+                hotel:"ТУРИСТИЧЕСКОЕ РАЗМЕЩЕНИЕ",
+                servizi_igenici:"ТУАЛЕТНЫЕ УСЛУГИ",
+                srv: "Выберите услугу",
+                /*--------------------------------------------*/
+            utente: "User",
+            tempo_trascorso: "Прошедшее время",
+            secondi:"Секунды",
+            minuti:"Минуты",
+            ore:"Часы"
+        },
+
+        /*-------------------------------------------------------*/
+
+        /*-----------------------ARABO---------------------------*/
+
+        ar: {
+        placeholder:"ابحث في IHELP",
+        account:"الحسابات",
+        preferiti:"المفضلة",
+        servizi:"خدمات",
+        seleziona_lingua:"اختر اللغة",
+        chiudi:"يغلق",
+        impostazioni:"إعدادات",
+        informazioni:"معلومات عن IHELP",
+        partner:"شريك",
+        donazioni:"التبرعات",
+        assistenza:"مساعدة",
+        contattaci:"اتصل بنا",
+        /*--------------POPUP SERVIZI ARABO-----------------*/
+        servizidisponibili:"الخدمات المتاحة",
+        /*-----------------POPUP-ARABO-------------مستخدم----------*/
+                /*------------------MARKER--------------------*/
+                parcheggio_occupato: "موقف السيارات مزدحم",
+                parcheggio_libero: "مواقف مجانية للسيارات",
+                ascensore: "مصعد",
+                hotel:"الإقامة السياحية",
+                servizi_igenici:"خدمات المراحيض",
+                srv: "اختر الخدمة",
+                /*--------------------------------------------*/
+        utente: "User",
+        tempo_trascorso: "الوقت المنقضي",
+        secondi:"ثواني",
+        minuti:"دقائق",
+        ore:"ساعات"
+        }
+
+        /*-------------------------------------------------------*/
+
+    };
+    // Crea la mappa
+    const map = L.map('map').setView([45.6511, 9.594417], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+
+
+        let selectedColors = { O: null, X: null, T: null };
+        let shownMarkers_pref = { O: null, X: null, T: null };
+        let activeButton = 'O';
+
+
+    var minZoomToEdit = 17;
+    var minZoomToView = 14;
+    var markers = [];
+
+/*-----------------------------------------------------------------------------------------------------------*/
+
+
+
+/*--------------------------------------------CHECKBOX PREFERITI---------------------------------------------*/
+
+            // Funzione per selezionare un colore nel popup e assegnarlo al pulsante attivo
+            function selectColor(color) {
+                let previousColor = selectedColors[activeButton]; // Colore precedentemente assegnato al pulsante attivo
+                
+                var new_img = document.getElementById('service-item-disp-pref-' + color);
+                var prev_img = document.getElementById('service-item-disp-pref-' + previousColor);
+
+                // Controlliamo se il colore è già stato assegnato a un altro pulsante e lo rimuoviamo
+                Object.keys(selectedColors).forEach(buttonId => {
+                    if (selectedColors[buttonId] === color) {
+                        selectedColors[buttonId] = null; // Rimuoviamo il colore dal pulsante precedente
+                        updateButtonColor(buttonId);
+                    }
+                });
+
+
+                // Assegniamo il nuovo colore al pulsante attivo
+                selectedColors[activeButton] = color;
+                updateButtonColor(activeButton);
+                
+                
+                try{
+                     prev_img.classList.remove('dimmed');
+                 }
+                 catch(exce){}
+                 new_img.classList.add('dimmed');
+                 
+
+                // Se il colore cambia, rendiamo invisibili i marker del vecchio colore
+                if (previousColor && previousColor !== color) {
+                    /*nascondo i marker del colore precedente; considerando la funzione,
+                    assegno direttamente il nuovo colore associato al pulsante come colore da mostrare (lo inserisco in shownMarkers_pref)
+                    in questo modo nel controllo eseguito in toggleMarker() il colore associato al
+                    bottone verrà settato a null(fare riferimento alla funzione per il funzionamento), di fatto nascondendo il vecchio colore
+                    e non mantiene nascosto quello nuovo. In poche parole si disattiva la funzione di mostrare il vecchio colore preferito,
+                    lasciando il resto invariato. se non ci sono altri colori preferiti da mostrare allora tutti ci marker verranno mostrati,
+                    altrimenti solo quelli preferiti che già venivano mostrati con priorità, escluso quello appena cambiato.*/
+                    shownMarkers_pref[activeButton] = color;//il marker del colore precedente non sono più da mostrare con priorità
+                    toggleMarker(activeButton);//nasconde eventualmente il vecchio colore se ci sono altri colori preferiti da mostrare, altrimenti mostra tutto.
+                }
+            
+            }
+
+            // Funzione per aggiornare il colore visivo di un singolo pulsante
+            function updateButtonColor(buttonId) {
+                let button = document.getElementById('btn' + buttonId + 'Out');
+                if (selectedColors[buttonId]) {
+                    button.style.backgroundColor = selectedColors[buttonId]; // Imposta il colore selezionato
+                } else {
+                    button.style.backgroundColor = '#d6e5f7'; // Ripristina il colore predefinito se il pulsante non ha un colore assegnato
+                }
+            }
+
+            // Funzione per aggiornare tutti i pulsanti in base ai colori assegnati
+            function updateButtonColors() {
+                Object.keys(selectedColors).forEach(buttonId => {
+                    updateButtonColor(buttonId);
+                });
+            }
+
+            // Listener per i pulsanti (O, X, T)
+            document.querySelectorAll('.color-button-pref').forEach(button => {
+                button.addEventListener('click', () => {
+                    activeButton = button.id.replace('btn', '').replace('Out', ''); // Salviamo quale pulsante è attivo
+                });
+            });
+
+            // Funzione di gestione della visibilità dei marker (modificata per combinarsi con la funzione toggleMarker)
+            function toggleMarker(button) {
+                let color = selectedColors[button]; // Ottieni il colore associato al pulsante
+                shownMarkers_pref[button] = shownMarkers_pref[button]  != null ? null : color;
+                console.log("shown markers: ", shownMarkers_pref);
+
+                if(color){//controlla che color sia valido, non null
+                    if(Object.values(shownMarkers_pref).every(entry => entry == null)){//verifica se non ci sono bottoni preferiti premuti
+                        showAllMarkers();//siccome non staimo cercando un certo tipo di marker li mostriamo tutti
+                    }
+                    else if (color === shownMarkers_pref[button] || shownMarkers_pref[button] === null){//se il bottone appena cliccato prima non mostrava questo dipo di marker
+                        hideNotSelectedMarkers(); // Nascondi i marker diversi da quello selezionato
+                    }
+                }
+
+                //sotto per nascondere il colore premuto nei pulsanti preferiti.
+                /*if (color) {//qui devi fare in modo che tutti tranne quello selezionato sono nascosti
+                    // Se il marker è già nascosto, lo mostriamo
+                    if (hiddenMarkers_pref[button] === color) {
+                        ShowMarkers(color); // Mostra il marker
+                        hiddenMarkers_pref[button] = null; // Rimuoviamo il marker nascosto
+                    } else {
+                        // Se il marker è visibile, lo nascondiamo
+                        HideMarkers(color); // Nascondi il marker
+                        hiddenMarkers_pref[button] = color; // Imposta il marker come nascosto
+                    }
+                }*/
+            }
+
+            // Funzione per nascondere i marker diversi dal colore selezionato
+            function hideNotSelectedMarkers() {
+                let selectedMarkers = Object.values(shownMarkers_pref);
+                console.log("shown markers: ", shownMarkers_pref);
+
+                markers.forEach(function(marker) {
+                    if (! selectedMarkers.includes(marker.type)) {//se il marker è diverso da quelli selezionati lo nascondo
+                        marker.setOpacity(0); // Nascondi il marker
+                        marker.closePopup(); // Chiudi il popup se il marker è nascosto
+                    }
+                    else{
+                        marker.setOpacity(100); // Nascondi il marker
+                        marker.closePopup(); // Chiudi il popup se il marker è nascosto
+                    }
+                });
+                hideMenu();
+            }
+
+            // Funzione per mostrare i marker
+            function showAllMarkers() {
+                markers.forEach(function(marker) {
+                    marker.setOpacity(100);
+                });
+            }
+
+
+/*-----------------------------------------------------------------------------------------------------------*/
+
+/*-------------------------------------------------ICONE----------------------------------------------------*/
+
+  /*-----------------------MARKER ROSSO------------------------*/
+
+          var redIcon = L.icon({
+          iconUrl: "{{ url_for('static', filename='img/' + 'RED_ICON.png') }}", // Immagine del marker rosso
+          iconSize: [35, 41], // Dimensioni del marker
+          iconAnchor: [12, 41], // Punto di ancoraggio
+          popupAnchor: [1, -34], // Posizione del popup
+          shadowSize: [41, 41] // Dimensioni dell'ombra
+          });
+    
+  /*-----------------------------------------------------------*/
+
+
+  /*-----------------------MARKER BLU--------------------------*/
+
+          var blueIcon = L.icon({
+          iconUrl: "{{ url_for('static', filename='img/' + 'BLUE_ICON.png') }}", // Immagine del marker blu
+          iconSize: [35, 41], // Dimensioni del marker
+          iconAnchor: [12, 41], // Punto di ancoraggio
+          popupAnchor: [1, -34], // Posizione del popup
+          shadowSize: [41, 41] // Dimensioni dell'ombra
+          });
+
+  /*-----------------------------------------------------------*/
+
+  /*-----------------------MARKER VERDE------------------------*/
+
+          var greenIcon = L.icon({
+          iconUrl: "{{ url_for('static', filename='img/' + 'GREEN_ICON.png') }}", // Immagine del marker verde
+          iconSize: [35, 42], // Dimensioni del marker
+          iconAnchor: [12, 41], // Punto di ancoraggio
+          popupAnchor: [1, -34], // Posizione del popup
+          shadowSize: [41, 41] // Dimensioni dell'ombra
+          });
+
+  /*-----------------------------------------------------------*/
+
+  /*-----------------------MARKER ARANCIONE------------------------*/
+
+          var orangeIcon = L.icon({
+          iconUrl: "{{ url_for('static', filename='img/' + 'ORANGE_ICON.png') }}", // Immagine del marker arancione
+          iconSize: [35, 40], // Dimensioni del marker
+          iconAnchor: [12, 41], // Punto di ancoraggio
+          popupAnchor: [1, -34], // Posizione del popup
+          shadowSize: [41, 41] // Dimensioni dell'ombra
+          });
+
+  /*-----------------------------------------------------------*/
+
+  /*-----------------------MARKER ROSA------------------------*/
+
+          var pinkIcon = L.icon({
+          iconUrl: "{{ url_for('static', filename='img/' + 'PINK_ICON.png') }}", // Immagine del marker arancione
+          iconSize: [35, 41], // Dimensioni del marker
+          iconAnchor: [12, 41], // Punto di ancoraggio
+          popupAnchor: [1, -34], // Posizione del popup
+          shadowSize: [41, 41] // Dimensioni dell'ombra
+          });
+
+  /*-----------------------------------------------------------*/
+
+
+/*-----------------------------------------------------------------------------------------------------------*/
+
+
+
+
+/*-----------------------------------------MENU' SCELTA MARKER-----------------------------------------------*/
+    
+    const menu = document.createElement('div');
+    menu.className = 'marker-menu';
+    menu.style.display = 'none'; // Nascondi il menu di default
+    document.body.appendChild(menu);
+
+    // Funzione per posizionare il menu contestuale
+    function showMenu(x, y) {
+      menu.style.left = `${x}px`;
+      menu.style.top = `${y}px`;
+      menu.style.display = 'block';
+    }
+
+    // Funzione per nascondere il menu contestuale
+    function hideMenu() {
+      menu.style.display = 'none';
+    }
+
+/*-----------------------------------------------------------------------------------------------------------*/
+
+
+
+
+/*--------------------------------------PULSANTI MENU' MARKER------------------------------------------------*/
+
+  /*--------------------PULSANTE ROSSO---------------------------*/
+
+    const redButton = document.createElement('button');
+    redButton.textContent = 'Rosso';
+    redButton.style.backgroundColor = 'red';
+    redButton.style.color = 'white';
+    menu.appendChild(redButton);
+  
+  /*-------------------------------------------------------------*/
+
+  /*--------------------PULSANTE BLU-----------------------------*/
+
+    const blueButton = document.createElement('button');
+    blueButton.textContent = 'Blu';
+    blueButton.style.backgroundColor = 'blue';
+    blueButton.style.color = 'white';
+    menu.appendChild(blueButton);
+
+  /*-------------------------------------------------------------*/
+
+  /*--------------------PULSANTE VERDE---------------------------*/
+
+    const greenButton = document.createElement('button');
+    greenButton.textContent = 'Verde';
+    greenButton.style.backgroundColor = 'green';
+    greenButton.style.color = 'white';
+    menu.appendChild(greenButton);
+
+  /*-------------------------------------------------------------*/
+
+  /*--------------------PULSANTE ARANCIONE---------------------------*/
+
+    const orangeButton = document.createElement('button');
+    orangeButton.textContent = 'Arancione';
+    orangeButton.style.backgroundColor = 'orange';
+    orangeButton.style.color = 'white';
+    menu.appendChild(orangeButton);
+  
+  /*-------------------------------------------------------------*/
+
+  /*--------------------PULSANTE ARANCIONE---------------------------*/
+
+    const pinkButton = document.createElement('button');
+    pinkButton.textContent = 'Rosa';
+    pinkButton.style.backgroundColor = 'Pink';
+    pinkButton.style.color = 'white';
+    menu.appendChild(pinkButton);
+  
+  /*-------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------------------------------------*/
+
+
+
+
+/*----------------------------------------------CLICK DESTRO------------------------------------------------------*/
+
+    // Aggiungi l'evento per il clic destro sulla mappa
+    map.on('contextmenu', function (e) {
+        var currentZoom = map.getZoom();
+        const { x, y } = e.containerPoint; // Coordinate del clic
+        showMenu(x, y); // Mostra il menu contestuale
+        const latlng = e.latlng;
+
+        if (currentZoom >= minZoomToEdit) {
+        // Se il livello di zoom è sufficiente, aggiungi un marker
+        var lat = e.latlng.lat;
+        var lng = e.latlng.lng;
+        
+
+/*-------------------------------------------------------------------------------------------------------------*/
+
+
+
+
+
+/*----------------------------------------------EVENTI PULSANTI------------------------------------------------------*/
+
+const ColoreToDescrizione = {
+    red: "parcheggio_occupato",
+    blue: 'parcheggio_libero',
+    green: 'ascensore',
+    orange :"hotel",
+    pink: "servizi_igenici"
+};
+
+/*-----------------------MARKER ROSSO------------------------*/
+
+        redButton.onclick = function () { 
+            const now = new Date(); // Ora attuale al momento dell'inserimento
+            const name = "Edoardo"; // Nome da aggiungere al popup
+            const lang = localStorage.getItem('selectedLanguage') || document.documentElement.lang || navigator.language.slice(0, 2) || 'en';
+            const descrizione = ColoreToDescrizione['red'];
+
+            // Crea il marker
+            var marker_r = L.marker(latlng, { icon: redIcon }).addTo(map);
+            marker_r.type = "red"; // Assegna tipo
+
+            // Calcola il tempo trascorso iniziale (solo una volta)
+            const elapsed = { 
+                startTime: now,
+                days: 0,
+                hours: 0,
+                minutes: 0,
+                seconds: 0
+            };
+
+            inviaCoordinate(lat, lng, elapsed.startTime, marker_r.type, descrizione);
+            console.log("LATITUDINE:", lat);
+            console.log("LONGITUDINE:", lng);
+            console.log(`TEMPO: ${elapsed.startTime}`);
+            console.log(`COLORE: ${marker_r.type}`);
+            console.log(`TIPO: ${descrizione}`);
+
+            // Funzione per calcolare il tempo trascorso con traduzioni dinamiche
+            function getElapsedTimeRosso(startTime, lang) {
+                const currentTime = new Date();
+                const elapsed = currentTime - startTime; // Differenza in millisecondi
+                const seconds = Math.floor((elapsed / 1000) % 60);
+                const minutes = Math.floor((elapsed / (1000 * 60)) % 60);
+                const hours = Math.floor((elapsed / (1000 * 60 * 60)) % 24);
+                const days = Math.floor(elapsed / (1000 * 60 * 60 * 24));
+
+                return { startTime, days, hours, minutes, seconds };
+            }
+
+            // Funzione per aggiornare il popup
+            function updatePopup(marker, startTime, type) {
+                const lang = localStorage.getItem('selectedLanguage') || document.documentElement.lang || navigator.language.slice(0, 2) || 'en';
+                const elapsed = getElapsedTimeRosso(startTime, lang);
+                const { days, hours, minutes, seconds } = elapsed;
+
+                let elapsedTime;
+                if (days > 0) {
+                    elapsedTime = `${days} ${translations[lang].giorni}, ${hours} ${translations[lang].ore}, ${minutes} ${translations[lang].minuti}`;
+                } else if (hours > 0) {
+                    elapsedTime = `${hours} ${translations[lang].ore}, ${minutes} ${translations[lang].minuti}, ${seconds} ${translations[lang].secondi}`;
+                } else if (minutes > 0) {
+                    elapsedTime = `${minutes} ${translations[lang].minuti}, ${seconds} ${translations[lang].secondi}`;
+                } else {
+                    elapsedTime = `${seconds} ${translations[lang].secondi}`;
+                }
+
+                const popupContent = `<b>${translations[lang][type]}</b> <br> 
+                ${translations[lang]["utente"]}: ${name} <br> 
+                ${translations[lang]["tempo_trascorso"]}: ${elapsedTime}`;
+
+                marker.getPopup().setContent(popupContent);
+            }
+
+            // Aggiungi il popup iniziale nella lingua corretta
+            marker_r.bindPopup(`<b>${translations[lang]["parcheggio_occupato"]}</b> <br> 
+            ${translations[lang]["utente"]}: ${name} <br> 
+            ${translations[lang]["tempo_trascorso"]}: 0 ${translations[lang]["secondi"]}`).openPopup();
+
+            // Aggiorna il popup ogni secondo per mostrare il tempo trascorso
+            setInterval(() => updatePopup(marker_r, now, "parcheggio_occupato"), 1000);
+
+            // Funzione per applicare le traduzioni ai marker esistenti quando cambia lingua
+            function applyTranslations(lang) {
+                document.querySelectorAll('.leaflet-marker-icon').forEach(marker => {
+                    updatePopup(marker, new Date(), marker.type);
+                });
+            }
+
+            hideMenu(); // Nascondi il menu dopo aver posizionato il marker
+            markers.push(marker_r);
+        };
+
+    
+
+  /*-----------------------------------------------------------*/
+
+  /*-----------------------MARKER BLU--------------------------*/
+
+        blueButton.onclick = function () {
+            const now = new Date(); // Ora attuale al momento dell'inserimento
+            const name = "Edoardo"; // Nome da aggiungere al popup
+            const lang = localStorage.getItem('selectedLanguage') || document.documentElement.lang || navigator.language.slice(0, 2) || 'en';
+            const descrizione = ColoreToDescrizione['blue'];
+
+            // Crea il marker
+            var marker_r = L.marker(latlng, { icon: blueIcon }).addTo(map);
+            marker_r.type = "blue"; // Assegna tipo
+
+            // Calcola il tempo trascorso iniziale (solo una volta)
+            const elapsed = { 
+                startTime: now,
+                days: 0,
+                hours: 0,
+                minutes: 0,
+                seconds: 0
+            };
+        
+            inviaCoordinate(lat, lng, elapsed.startTime, marker_r.type, descrizione);
+            console.log("LATITUDINE:", lat);
+            console.log("LONGITUDINE:", lng);
+            console.log(`TEMPO: ${elapsed.startTime}`);
+            console.log(`COLORE: ${marker_r.type}`);
+            console.log(`TIPO: ${descrizione}`);
+
+            // Funzione per calcolare il tempo trascorso con traduzioni dinamiche
+            function getElapsedTimeBlu(startTime, lang) {
+                const currentTime = new Date();
+                const elapsed = currentTime - startTime; // Differenza in millisecondi
+                const seconds = Math.floor((elapsed / 1000) % 60);
+                const minutes = Math.floor((elapsed / (1000 * 60)) % 60);
+                const hours = Math.floor((elapsed / (1000 * 60 * 60)) % 24);
+                const days = Math.floor(elapsed / (1000 * 60 * 60 * 24));
+
+                return { startTime, days, hours, minutes, seconds };
+            }
+
+            // Funzione per aggiornare il popup
+            function updatePopup(marker, startTime, type) {
+                const lang = localStorage.getItem('selectedLanguage') || document.documentElement.lang || navigator.language.slice(0, 2) || 'en';
+                const elapsed = getElapsedTimeBlu(startTime, lang);
+                const { days, hours, minutes, seconds } = elapsed;
+
+                let elapsedTime;
+                if (days > 0) {
+                    elapsedTime = `${days} ${translations[lang].giorni}, ${hours} ${translations[lang].ore}, ${minutes} ${translations[lang].minuti}`;
+                } else if (hours > 0) {
+                    elapsedTime = `${hours} ${translations[lang].ore}, ${minutes} ${translations[lang].minuti}, ${seconds} ${translations[lang].secondi}`;
+                } else if (minutes > 0) {
+                    elapsedTime = `${minutes} ${translations[lang].minuti}, ${seconds} ${translations[lang].secondi}`;
+                } else {
+                    elapsedTime = `${seconds} ${translations[lang].secondi}`;
+                }
+
+                const popupContent = `<b>${translations[lang][type]}</b> <br> 
+                ${translations[lang]["utente"]}: ${name} <br> 
+                ${translations[lang]["tempo_trascorso"]}: ${elapsedTime}`;
+
+                marker.getPopup().setContent(popupContent);
+            }
+
+            // Aggiungi il popup iniziale nella lingua corretta
+            marker_r.bindPopup(`<b>${translations[lang]["parcheggio_libero"]}</b> <br> 
+            ${translations[lang]["utente"]}: ${name} <br> 
+            ${translations[lang]["tempo_trascorso"]}: 0 ${translations[lang]["secondi"]}`).openPopup();
+
+            // Aggiorna il popup ogni secondo per mostrare il tempo trascorso
+            setInterval(() => updatePopup(marker_r, now, "parcheggio_libero"), 1000);
+
+            // Funzione per applicare le traduzioni ai marker esistenti quando cambia lingua
+            function applyTranslations(lang) {
+                document.querySelectorAll('.leaflet-marker-icon').forEach(marker => {
+                    updatePopup(marker, new Date(), marker.type);
+                });
+            }
+
+            hideMenu(); // Nascondi il menu dopo aver posizionato il marker
+            markers.push(marker_r);
+    };
+
+  /*-----------------------------------------------------------*/
+
+  /*-----------------------MARKER VERDE------------------------*/
+
+        greenButton.onclick = function () {
+            const now = new Date(); // Ora attuale al momento dell'inserimento
+            const name = "Edoardo"; // Nome da aggiungere al popup
+            const lang = localStorage.getItem('selectedLanguage') || document.documentElement.lang || navigator.language.slice(0, 2) || 'en';
+            const descrizione = ColoreToDescrizione['green'];
+
+            // Crea il marker
+            var marker_r = L.marker(latlng, { icon: greenIcon }).addTo(map);
+            marker_r.type = "green";
+
+            // Calcola il tempo trascorso iniziale (solo una volta)
+            const elapsed = { 
+                startTime: now,
+                days: 0,
+                hours: 0,
+                minutes: 0,
+                seconds: 0
+            };
+        
+            inviaCoordinate(lat, lng, elapsed.startTime, marker_r.type, descrizione);
+            console.log("LATITUDINE:", lat);
+            console.log("LONGITUDINE:", lng);
+            console.log(`TEMPO: ${elapsed.startTime}`);
+            console.log(`COLORE: ${marker_r.type}`);
+            console.log(`TIPO: ${descrizione}`);
+
+            // Funzione per calcolare il tempo trascorso con traduzioni dinamiche
+            function getElapsedTimeVerde(startTime, lang) {
+                const currentTime = new Date();
+                const elapsed = currentTime - startTime; // Differenza in millisecondi
+                const seconds = Math.floor((elapsed / 1000) % 60);
+                const minutes = Math.floor((elapsed / (1000 * 60)) % 60);
+                const hours = Math.floor((elapsed / (1000 * 60 * 60)) % 24);
+                const days = Math.floor(elapsed / (1000 * 60 * 60 * 24));
+
+                return { startTime, days, hours, minutes, seconds };
+            }
+
+            // Funzione per aggiornare il popup
+            function updatePopup(marker, startTime, type) {
+                const lang = localStorage.getItem('selectedLanguage') || document.documentElement.lang || navigator.language.slice(0, 2) || 'en';
+                const elapsed = getElapsedTimeVerde(startTime, lang);
+                const { days, hours, minutes, seconds } = elapsed;
+
+                let elapsedTime;
+                if (days > 0) {
+                    elapsedTime = `${days} ${translations[lang].giorni}, ${hours} ${translations[lang].ore}, ${minutes} ${translations[lang].minuti}`;
+                } else if (hours > 0) {
+                    elapsedTime = `${hours} ${translations[lang].ore}, ${minutes} ${translations[lang].minuti}, ${seconds} ${translations[lang].secondi}`;
+                } else if (minutes > 0) {
+                    elapsedTime = `${minutes} ${translations[lang].minuti}, ${seconds} ${translations[lang].secondi}`;
+                } else {
+                    elapsedTime = `${seconds} ${translations[lang].secondi}`;
+                }
+
+                const popupContent = `<b>${translations[lang][type]}</b> <br> 
+                ${translations[lang]["utente"]}: ${name} <br> 
+                ${translations[lang]["tempo_trascorso"]}: ${elapsedTime}`;
+
+                marker.getPopup().setContent(popupContent);
+            }
+
+            // Aggiungi il popup iniziale nella lingua corretta
+            marker_r.bindPopup(`<b>${translations[lang]["ascensore"]}</b> <br> 
+            ${translations[lang]["utente"]}: ${name} <br> 
+            ${translations[lang]["tempo_trascorso"]}: 0 ${translations[lang]["secondi"]}`).openPopup();
+
+            // Aggiorna il popup ogni secondo per mostrare il tempo trascorso
+            setInterval(() => updatePopup(marker_r, now, "ascensore"), 1000);
+
+            // Funzione per applicare le traduzioni ai marker esistenti quando cambia lingua
+            function applyTranslations(lang) {
+                document.querySelectorAll('.leaflet-marker-icon').forEach(marker => {
+                    updatePopup(marker, new Date(), marker.type);
+                });
+            }
+
+            hideMenu(); // Nascondi il menu dopo aver posizionato il marker
+            markers.push(marker_r);
+    };
+
+    /*-----------------------------------------------------------*/
+
+    /*-----------------------MARKER ARANCIONE------------------------*/
+
+        orangeButton.onclick = function () {
+            const now = new Date(); // Ora attuale al momento dell'inserimento
+            const name = "Edoardo"; // Nome da aggiungere al popup
+            const lang = localStorage.getItem('selectedLanguage') || document.documentElement.lang || navigator.language.slice(0, 2) || 'en';
+            const descrizione = ColoreToDescrizione['orange'];
+
+            // Crea il marker
+            var marker_r = L.marker(latlng, { icon: orangeIcon }).addTo(map);
+            marker_r.type = "orange"; // Assegna tipo
+
+        // Calcola il tempo trascorso iniziale (solo una volta)
+            const elapsed = { 
+                startTime: now,
+                days: 0,
+                hours: 0,
+                minutes: 0,
+                seconds: 0
+            };
+        
+            inviaCoordinate(lat, lng, elapsed.startTime, marker_r.type, descrizione);
+            console.log("LATITUDINE:", lat);
+            console.log("LONGITUDINE:", lng);
+            console.log(`TEMPO: ${elapsed.startTime}`);
+            console.log(`COLORE: ${marker_r.type}`);
+            console.log(`TIPO: ${descrizione}`);
+
+            // Funzione per calcolare il tempo trascorso con traduzioni dinamiche
+            function getElapsedTimeArancione(startTime, lang) {
+                const currentTime = new Date();
+                const elapsed = currentTime - startTime; // Differenza in millisecondi
+                const seconds = Math.floor((elapsed / 1000) % 60);
+                const minutes = Math.floor((elapsed / (1000 * 60)) % 60);
+                const hours = Math.floor((elapsed / (1000 * 60 * 60)) % 24);
+                const days = Math.floor(elapsed / (1000 * 60 * 60 * 24));
+
+                return { startTime, days, hours, minutes, seconds };
+            }
+
+            // Funzione per aggiornare il popup
+            function updatePopup(marker, startTime, type) {
+                const lang = localStorage.getItem('selectedLanguage') || document.documentElement.lang || navigator.language.slice(0, 2) || 'en';
+                const elapsed = getElapsedTimeArancione(startTime, lang);
+                const { days, hours, minutes, seconds } = elapsed;
+
+                let elapsedTime;
+                if (days > 0) {
+                    elapsedTime = `${days} ${translations[lang].giorni}, ${hours} ${translations[lang].ore}, ${minutes} ${translations[lang].minuti}`;
+                } else if (hours > 0) {
+                    elapsedTime = `${hours} ${translations[lang].ore}, ${minutes} ${translations[lang].minuti}, ${seconds} ${translations[lang].secondi}`;
+                } else if (minutes > 0) {
+                    elapsedTime = `${minutes} ${translations[lang].minuti}, ${seconds} ${translations[lang].secondi}`;
+                } else {
+                    elapsedTime = `${seconds} ${translations[lang].secondi}`;
+                }
+
+                const popupContent = `<b>${translations[lang][type]}</b> <br> 
+                ${translations[lang]["utente"]}: ${name} <br> 
+                ${translations[lang]["tempo_trascorso"]}: ${elapsedTime}`;
+
+                marker.getPopup().setContent(popupContent);
+            }
+
+            // Aggiungi il popup iniziale nella lingua corretta
+            marker_r.bindPopup(`<b>${translations[lang]["hotel"]}</b> <br> 
+            ${translations[lang]["utente"]}: ${name} <br> 
+            ${translations[lang]["tempo_trascorso"]}: 0 ${translations[lang]["secondi"]}`).openPopup();
+
+            // Aggiorna il popup ogni secondo per mostrare il tempo trascorso
+            setInterval(() => updatePopup(marker_r, now, "hotel"), 1000);
+
+            // Funzione per applicare le traduzioni ai marker esistenti quando cambia lingua
+            function applyTranslations(lang) {
+                document.querySelectorAll('.leaflet-marker-icon').forEach(marker => {
+                    updatePopup(marker, new Date(), marker.type);
+                });
+            }
+
+            hideMenu(); // Nascondi il menu dopo aver posizionato il marker
+            markers.push(marker_r);
+    };        
+
+    /*-----------------------------------------------------------*/
+
+    /*-----------------------MARKER ROSA------------------------*/
+
+        pinkButton.onclick = function () {
+            const now = new Date(); // Ora attuale al momento dell'inserimento
+            const name = "Edoardo"; // Nome da aggiungere al popup
+            const lang = localStorage.getItem('selectedLanguage') || document.documentElement.lang || navigator.language.slice(0, 2) || 'en';
+            const descrizione = ColoreToDescrizione['pink'];
+
+            // Crea il marker
+            var marker_r = L.marker(latlng, { icon: pinkIcon }).addTo(map);
+            marker_r.type = "pink"; // Assegna tipo
+
+            // Calcola il tempo trascorso iniziale (solo una volta)
+            const elapsed = { 
+                startTime: now,
+                days: 0,
+                hours: 0,
+                minutes: 0,
+                seconds: 0
+            };
+        
+            inviaCoordinate(lat, lng, elapsed.startTime, marker_r.type, descrizione);
+            console.log("LATITUDINE:", lat);
+            console.log("LONGITUDINE:", lng);
+            console.log(`TEMPO: ${elapsed.startTime}`);
+            console.log(`COLORE: ${marker_r.type}`);
+            console.log(`TIPO: ${descrizione}`);
+
+            // Funzione per calcolare il tempo trascorso con traduzioni dinamiche
+            function getElapsedTimeRosa(startTime, lang) {
+                const currentTime = new Date();
+                const elapsed = currentTime - startTime; // Differenza in millisecondi
+                const seconds = Math.floor((elapsed / 1000) % 60);
+                const minutes = Math.floor((elapsed / (1000 * 60)) % 60);
+                const hours = Math.floor((elapsed / (1000 * 60 * 60)) % 24);
+                const days = Math.floor(elapsed / (1000 * 60 * 60 * 24));
+
+                return { startTime, days, hours, minutes, seconds };
+            }
+
+            // Funzione per aggiornare il popup
+            function updatePopup(marker, startTime, type) {
+                const lang = localStorage.getItem('selectedLanguage') || document.documentElement.lang || navigator.language.slice(0, 2) || 'en';
+                const elapsed = getElapsedTimeRosa(startTime, lang);
+                const { days, hours, minutes, seconds } = elapsed;
+
+                let elapsedTime;
+                if (days > 0) {
+                    elapsedTime = `${days} ${translations[lang].giorni}, ${hours} ${translations[lang].ore}, ${minutes} ${translations[lang].minuti}`;
+                } else if (hours > 0) {
+                    elapsedTime = `${hours} ${translations[lang].ore}, ${minutes} ${translations[lang].minuti}, ${seconds} ${translations[lang].secondi}`;
+                } else if (minutes > 0) {
+                    elapsedTime = `${minutes} ${translations[lang].minuti}, ${seconds} ${translations[lang].secondi}`;
+                } else {
+                    elapsedTime = `${seconds} ${translations[lang].secondi}`;
+                }
+
+                const popupContent = `<b>${translations[lang][type]}</b> <br> 
+                ${translations[lang]["utente"]}: ${name} <br> 
+                ${translations[lang]["tempo_trascorso"]}: ${elapsedTime}`;
+
+                marker.getPopup().setContent(popupContent);
+            }
+
+            // Aggiungi il popup iniziale nella lingua corretta
+            marker_r.bindPopup(`<b>${translations[lang]["servizi_igenici"]}</b> <br> 
+            ${translations[lang]["utente"]}: ${name} <br> 
+            ${translations[lang]["tempo_trascorso"]}: 0 ${translations[lang]["secondi"]}`).openPopup();
+
+            // Aggiorna il popup ogni secondo per mostrare il tempo trascorso
+            setInterval(() => updatePopup(marker_r, now, "servizi_igenici"), 1000);
+
+            // Funzione per applicare le traduzioni ai marker esistenti quando cambia lingua
+            function applyTranslations(lang) {
+                document.querySelectorAll('.leaflet-marker-icon').forEach(marker => {
+                    updatePopup(marker, new Date(), marker.type);
+                });
+            }
+
+            hideMenu(); // Nascondi il menu dopo aver posizionato il marker
+            markers.push(marker_r);
+        };        
+
+    /*-----------------------------------------------------------*/
+
+
+
+
+/*-----------------UPDATE LINGUA MARKER-------------------------------*/
+
+    // Ascolta il cambio lingua e aggiorna i marker
+    document.addEventListener("languageChanged", (event) => {
+        const newLang = event.detail.newLang;
+        applyTranslations(newLang);
+    });
+
+      // Funzione per cambiare lingua e aggiornare il sito
+    function changeLanguage(newLang) {
+        localStorage.setItem('selectedLanguage', newLang);
+        document.dispatchEvent(new CustomEvent("languageChanged", { detail: { newLang } }));
+    }
+  
+    } else 
+        hideMenu();
+    });
+
+/*-----------------------------------------------------------------------------------------------------------*/
+
+
+</script>
+
+{% for i in dati_risposta %}
+
+<script>
+/*----------------------------------------MARKER DATABASE---------------------------------------------*/
+
+// Funzione che crea e gestisce un solo marker rosa
+
+function createPinkMarker() {
+    
+    const ColoreToDescrizione = {
+    red: "parcheggio_occupato",
+    blue: 'parcheggio_libero',
+    green: 'ascensore',
+    orange :"hotel",
+    pink: "servizi_igenici"
+};
+
+const ColoreToIcona = {
+    red: redIcon,
+    blue: blueIcon,
+    green: greenIcon,
+    orange : orangeIcon,
+    pink: pinkIcon
+};
+
+    let latitudine = {{ i.latitudine }};
+    let longitudine = {{ i.longitudine }};
+    const now = new Date();
+    const name = "Edoardo";
+    const lang = localStorage.getItem('selectedLanguage') || document.documentElement.lang || navigator.language.slice(0, 2) || 'en';
+    const descrizione = '{{ i.descrizione }}';
+    const colore1 = '{{ i.colore }}'
+
+    const marker_r = L.marker([latitudine, longitudine], { icon: ColoreToIcona['{{ i.colore }}'] }).addTo(map);
+    marker_r.type = 'colore1';  
+
+            // Calcola il tempo trascorso iniziale (solo una volta)
+            const elapsed = { 
+                startTime: now,
+                days: 0,
+                hours: 0,
+                minutes: 0,
+                seconds: 0
+            };
+        
+            console.log(`TEMPO: ${elapsed.startTime}`);
+            console.log(`COLORE: ${marker_r.type}`);
+            console.log(`TIPO: ${descrizione}`);
+
+            // Funzione per calcolare il tempo trascorso con traduzioni dinamiche
+            function getElapsedTimeRosa(startTime, lang) {
+                const currentTime = new Date();
+                const elapsed = currentTime - startTime; // Differenza in millisecondi
+                const seconds = Math.floor((elapsed / 1000) % 60);
+                const minutes = Math.floor((elapsed / (1000 * 60)) % 60);
+                const hours = Math.floor((elapsed / (1000 * 60 * 60)) % 24);
+                const days = Math.floor(elapsed / (1000 * 60 * 60 * 24));
+
+                return { startTime, days, hours, minutes, seconds };
+            }
+
+            // Funzione per aggiornare il popup
+            function updatePopup(marker, startTime, type) {
+                const lang = localStorage.getItem('selectedLanguage') || document.documentElement.lang || navigator.language.slice(0, 2) || 'en';
+                const elapsed = getElapsedTimeRosa(startTime, lang);
+                const { days, hours, minutes, seconds } = elapsed;
+
+                let elapsedTime;
+                if (days > 0) {
+                    elapsedTime = `${days} ${translations[lang].giorni}, ${hours} ${translations[lang].ore}, ${minutes} ${translations[lang].minuti}`;
+                } else if (hours > 0) {
+                    elapsedTime = `${hours} ${translations[lang].ore}, ${minutes} ${translations[lang].minuti}, ${seconds} ${translations[lang].secondi}`;
+                } else if (minutes > 0) {
+                    elapsedTime = `${minutes} ${translations[lang].minuti}, ${seconds} ${translations[lang].secondi}`;
+                } else {
+                    elapsedTime = `${seconds} ${translations[lang].secondi}`;
+                }
+
+                const popupContent = `<b>${translations[lang][type]}</b> <br> 
+                ${translations[lang]["utente"]}: ${name} <br> 
+                ${translations[lang]["tempo_trascorso"]}: ${elapsedTime}`;
+
+                marker.getPopup().setContent(popupContent);
+            }
+
+            // Aggiungi il popup iniziale nella lingua corretta
+            marker_r.bindPopup(`<b>${translations[lang]['{{ i.descrizione }}']}</b> <br> 
+            ${translations[lang]["utente"]}: ${name} <br> 
+            ${translations[lang]["tempo_trascorso"]}: 0 ${translations[lang]["secondi"]}`);
+
+            // Aggiorna il popup ogni secondo per mostrare il tempo trascorso
+            setInterval(() => updatePopup(marker_r, now, '{{ i.descrizione }}'), 1000);
+
+            // Funzione per applicare le traduzioni ai marker esistenti quando cambia lingua
+            function applyTranslations(lang) {
+                document.querySelectorAll('.leaflet-marker-icon').forEach(marker => {
+                    updatePopup(marker, new Date(), marker.type);
+                });
+            }
+
+    // Aggiungi il marker alla lista globale
+    markers.push(marker_r);
+}
+
+// Esegui subito la funzione una sola volta
+createPinkMarker();
+
+
+/*-----------------------------------------------------------------------------------------------------------*/
+
+</script>
+{% endfor %}
+
+<script>
+/*-----------------------------------------COMPORTAMENTO MARKER----------------------------------------------*/
+
+  /*--------------------ZOOM MAPPA-----------------------------*/
+
+    map.on('zoomend', function () {
+      var currentZoom = map.getZoom();
+
+  /*-----------------------------------------------------------*/
+
+
+  /*--------------------MARKER OFF-----------------------------*/
+
+      if (currentZoom < minZoomToView ) {
+        markers.forEach(function(marker) {
+          marker.setOpacity(0); // Nascondi il marker
+          marker.closePopup()
+        });
+        hideMenu();
+      } 
+      
+  /*-----------------------------------------------------------*/
+
+
+  /*--------------------MARKER ON------------------------------*/
+
+      else {
+        // Se il livello di zoom è sufficiente, mostra i marker
+        markers.forEach(function(marker) {
+          marker.setOpacity(1); // Mostra il marker
+        });
+      }
+
+    });
+
+  /*-----------------------------------------------------------*/
+
+/*-----------------------------------------------------------------------------------------------------------*/
+
+
+
+/*----------------------------------------------NASCONDI------------------------------------------------------*/
+
+        map.on('click', hideMenu);
+        document.body.addEventListener('click', function (e) {
+        if (!menu.contains(e.target)) {
+            hideMenu();
+        }
+    });
+
+/*-----------------------------------------------------------------------------------------------------------*/
+
+
+
+/*-------------------------------------------------DB---------------------------------------------------*/ 
+
+function inviaCoordinate(lat, lng, tempo, colore, info) {
+    fetch('http://10.1.1.193/invia', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            lat: lat,
+            lng: lng,
+            di: tempo, // Esempio di data e ora
+            col: colore, // Esempio di colore
+            desc: info, // Esempio di tipologia
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Errore nella risposta del server');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Risposta server:', data);
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+    });
+}
+
+/*------------------------------------------------------------------------------------------------------*/
+
+
+
+  </script>
+</body>
+
+<!----------------------------------------------FINE BODY----------------------------------------------------->
+
+</html>
